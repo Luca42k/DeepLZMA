@@ -10,7 +10,7 @@ from collections import Counter
 import re
 import matplotlib.pyplot as plt
 
-# 固定随机种子
+# Fix random seed for reproducibility
 def set_seed(seed=42):
     random.seed(seed)
     np.random.seed(seed)
@@ -21,20 +21,20 @@ def set_seed(seed=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-# NLP 预处理函数
-def preprocess_text_optimized(text, threshold=50, min_phrase_length=5):
+# NLP preprocessing function
+def preprocess_text_optimized(text, threshold=10, min_phrase_length=3):
     """
-    对文本进行高频长短语提取和替换，返回处理后的文本和元数据。
+    Extracts and replaces high-frequency long phrases in the text, returning the processed text and metadata.
     """
     print("Extracting high-frequency long phrases...")
-    word_freq = Counter(text.split())  # 按空格分割单词
-    # 提取非空且符合条件的高频短语
+    word_freq = Counter(text.split())  # Split text by spaces
+    # Extract non-empty and valid high-frequency phrases
     high_freq_phrases = [
         word for word, count in word_freq.items()
         if count > threshold and len(word) >= min_phrase_length and word.strip()
     ]
 
-    if not high_freq_phrases:  # 如果没有符合条件的短语
+    if not high_freq_phrases:  # If no valid phrases found
         print("No high-frequency phrases found. Skipping NLP preprocessing.")
         return text, {"phrases": {"high_freq_phrases": []}}
 
@@ -45,14 +45,7 @@ def preprocess_text_optimized(text, threshold=50, min_phrase_length=5):
     metadata = {"phrases": {"high_freq_phrases": high_freq_phrases}}
     return processed_text, metadata
 
-# NLP 还原函数
-def restore_text(preprocessed_text, metadata):
-    high_freq_phrases = metadata["phrases"]["high_freq_phrases"]
-    for i, phrase in enumerate(high_freq_phrases):
-        preprocessed_text = preprocessed_text.replace(f"#{i}", phrase)
-    return preprocessed_text
-
-# 数据集类
+# Dataset class for character-level RNN training
 class TextDataset(Dataset):
     def __init__(self, text, seq_length):
         self.text = text
@@ -66,7 +59,7 @@ class TextDataset(Dataset):
         target = ord(self.text[idx + self.seq_length]) % 256
         return torch.tensor(input_seq), torch.tensor(target)
 
-# RNN 模型
+# RNN Model class
 class RNNModel(nn.Module):
     def __init__(self, vocab_size, embed_size, hidden_size, num_layers):
         super(RNNModel, self).__init__()
@@ -80,8 +73,11 @@ class RNNModel(nn.Module):
         out = self.fc(out[:, -1, :])
         return out, h
 
-# RNN 压缩函数
+# RNN Compression function
 def compress_with_rnn(model, text, seq_length, output_file):
+    """
+    Compresses text using RNN model predictions.
+    """
     model.eval()
     compressed_data = b""
     with torch.no_grad():
@@ -96,15 +92,21 @@ def compress_with_rnn(model, text, seq_length, output_file):
         f.write(compressed_data)
     return os.path.getsize(output_file)
 
-# 默认 LZMA 压缩函数
+# Default LZMA compression function
 def compress_with_default_lzma(input_text, output_file):
+    """
+    Compresses the text using default LZMA.
+    """
     compressed_data = lzma.compress(input_text.encode('utf-8'))
     with open(output_file, "wb") as f_out:
         f_out.write(compressed_data)
     return os.path.getsize(output_file)
 
-# 绘制对比图
+# Plot compression results
 def plot_compression_results(original_size, default_size, nlp_size, rnn_size):
+    """
+    Plots a comparison of original data size, LZMA compressed size, NLP+LZMA compressed size, and NLP+RNN+LZMA compressed size.
+    """
     sizes = [original_size, default_size, nlp_size, rnn_size]
     labels = ["Original", "LZMA", "NLP+LZMA", "NLP+RNN+LZMA"]
     colors = ["gray", "blue", "green", "orange"]
@@ -119,8 +121,11 @@ def plot_compression_results(original_size, default_size, nlp_size, rnn_size):
     plt.tight_layout()
     plt.show()
 
-# 训练模型函数
+# Training function
 def train_model(model, dataloader, criterion, optimizer, num_epochs):
+    """
+    Trains the RNN model using the provided dataloader and optimizer.
+    """
     model.train()
     for epoch in range(num_epochs):
         total_loss = 0
@@ -135,7 +140,7 @@ def train_model(model, dataloader, criterion, optimizer, num_epochs):
             total_loss += loss.item()
         print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {total_loss / len(dataloader):.4f}")
 
-# 主程序
+# Main program
 if __name__ == "__main__":
     set_seed(42)
 
@@ -151,17 +156,17 @@ if __name__ == "__main__":
     with open(compress_file, "r", encoding="utf-8") as f:
         compress_text_data = f.read()[:100000]
 
-    # 原始大小
+    # Original size
     original_size = len(compress_text_data.encode('utf-8'))
 
-    # 默认 LZMA 压缩
+    # Default LZMA compression
     default_size = compress_with_default_lzma(compress_text_data, default_output_file)
 
-    # NLP 预处理 + LZMA 压缩
+    # NLP preprocessing + LZMA compression
     preprocessed_text, metadata = preprocess_text_optimized(compress_text_data)
     nlp_size = compress_with_default_lzma(preprocessed_text, nlp_file)
 
-    # RNN 压缩
+    # RNN compression
     vocab_size = 256
     embed_size = 256
     hidden_size = 512
@@ -183,5 +188,5 @@ if __name__ == "__main__":
 
     rnn_size = compress_with_rnn(model, preprocessed_text, seq_length, rnn_output_file)
 
-    # 绘制对比图
+    # Plot comparison
     plot_compression_results(original_size, default_size, nlp_size, rnn_size)
