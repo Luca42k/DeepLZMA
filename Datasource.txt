@@ -1,0 +1,4 @@
+enwik8：https://mattmahoney.net/dc/textdata.html
+enwik9：https://mattmahoney.net/dc/textdata.html
+NIH Chest X-rays：https://www.kaggle.com/datasets/nih-chest-xrays/data (First 100 images of images_001, use PNG to PPM script to transfer)
+爱在西元前.wav : https://www.xmwav.com/mscdetail/132327.html
