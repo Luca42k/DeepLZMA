@@ -22,7 +22,7 @@ def set_seed(seed=42):
     torch.backends.cudnn.benchmark = False
 
 # NLP preprocessing function
-def preprocess_text_optimized(text, threshold=10, min_phrase_length=3):
+def preprocess_text_optimized(text, threshold=5, min_phrase_length=4):
     """
     Extracts and replaces high-frequency long phrases in the text, returning the processed text and metadata.
     """
@@ -44,6 +44,7 @@ def preprocess_text_optimized(text, threshold=10, min_phrase_length=3):
 
     metadata = {"phrases": {"high_freq_phrases": high_freq_phrases}}
     return processed_text, metadata
+
 
 # Dataset class for character-level RNN training
 class TextDataset(Dataset):
@@ -187,6 +188,7 @@ if __name__ == "__main__":
     train_model(model, dataloader, criterion, optimizer, num_epochs)
 
     rnn_size = compress_with_rnn(model, preprocessed_text, seq_length, rnn_output_file)
+
 
     # Plot comparison
     plot_compression_results(original_size, default_size, nlp_size, rnn_size)
