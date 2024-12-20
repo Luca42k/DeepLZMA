@@ -151,10 +151,10 @@ if __name__ == "__main__":
     nlp_file = "compressed_enwik8_nlp.xz"
 
     with open(train_file, "r", encoding="utf-8") as f:
-        train_text = f.read()[:100000]
+        train_text = f.read()[:10000]
 
     with open(compress_file, "r", encoding="utf-8") as f:
-        compress_text_data = f.read()[:100000]
+        compress_text_data = f.read()[:10000]
 
     # Original size
     original_size = len(compress_text_data.encode('utf-8'))
